@@ -1,0 +1,24 @@
+galaxy_info:
+  role_name: docker_services
+  author: belgotux
+  description: Role to deploy docker-compose, with override and .env files. Template for most of docker-compose file but you can add your specific template too.
+  license: GPL-3.0-or-later
+
+  min_ansible_version: '2.1'
+
+  platforms:
+    - name: Debian
+      versions:
+        - all
+    - name: Ubuntu
+      versions:
+        - all
+
+  galaxy_tags:
+    - docker
+    - compose
+
+collections:
+  - community.docker
+
+dependencies: []

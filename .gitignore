@@ -1,0 +1,2 @@
+templates/*
+!templates/docker-compose.yml.j2

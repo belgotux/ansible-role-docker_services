@@ -1,0 +1,4 @@
+---
+- name: Check list
+  include_tasks: deploy_docker_compose.yml
+  loop: '{{ docker_services_list }}'

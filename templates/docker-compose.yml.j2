@@ -1,0 +1,57 @@
+services:
+  {{ item.service }}:
+{% if item.image is defined %}
+    image: {{ item.image }}
+{% endif %}
+{% if item.mem_limit is defined %}
+    mem_limit: {{ item.mem_limit }}
+{% endif %}
+{% if item.name is defined %}
+    container_name: {{ item.name }}
+{% endif %}
+{% if item.volumes is defined %}
+    volumes:
+{% for volume in item.volumes %}
+{% set volume_absolute = volume | replace('$PWD', docker_services_docker_path ~ '/' ~ item.name) %}
+      - {{ volume_absolute }}
+{% endfor %}
+{% endif %}
+
+{% if item.networks is defined %}
+    networks:
+{% for network in item.networks %}
+      - {{ network }}
+{% endfor %}
+{% endif %}
+
+{% if item.caps is defined %}
+    cap_add:
+{% for cap in item.caps %}
+      - {{ cap }}
+{% endfor %}
+{% endif %}
+{% if item.ports is defined %}
+    ports:
+{% for port in item.ports %}
+      - {{ port }}
+{% endfor %}
+{% endif %}
+
+{% if item.environments is defined %}
+    environment:
+{% for environment in item.environments %}
+      - {{ environment }}
+{% endfor %}
+{% endif %}
+    restart: {{ item.restart | default ('unless-stopped') }}
+{% if item.labels is defined %}
+    labels:
+{% for label in item.labels %}
+      - {{ label }}
+{% endfor %}
+{% endif %}
+
+
+{% if item.extra is defined %}
+{{ item.extra }}
+{% endif %}

@@ -1,0 +1,59 @@
+- name: Create directory for {{ item.name }}
+  file:
+    dest: '{{ docker_services_docker_path }}/{{ item.name }}'
+    mode: '0775'
+    state: directory
+
+- name: Check if specific docker-compose file exist
+  delegate_to: localhost
+  stat:
+    path: "{{ role_path }}/templates/{{ item.name }}.yml.j2"
+  register: _docker_services_dc_stat
+- name: Deploy specific docker compose {{ item.name }}
+  template:
+    src: '{{ item.name }}.yml.j2'
+    dest: '{{ docker_services_docker_path }}/{{ item.name }}/docker-compose.yml'
+    group: '{{ docker_services_docker_group }}'
+    mode: '0664'
+  when: _docker_services_dc_stat.stat.exists
+- name: Deploy docker compose basic
+  template:
+    src: 'docker-compose.yml.j2'
+    dest: '{{ docker_services_docker_path }}/{{ item.name }}/docker-compose.yml'
+    group: '{{ docker_services_docker_group }}'
+    mode: '0664'
+  when: not _docker_services_dc_stat.stat.exists
+
+- name: Check if override file exist
+  delegate_to: localhost
+  stat:
+    path: "{{ role_path }}/templates/{{ item.name }}.override.yml.j2"
+  register: _docker_services_dc_override_stat
+- name: Deploy override if exist
+  template:
+    src: '{{ item.name }}.override.yml.j2'
+    dest: '{{ docker_services_docker_path }}/{{ item.name }}/docker-compose.override.yml'
+    group: '{{ docker_services_docker_group }}'
+    mode: '0664'
+  when: _docker_services_dc_override_stat.stat.exists
+
+- name: Check if env file exist for this name {{ item.name }}
+  delegate_to: localhost
+  stat:
+    path: "{{ role_path }}/templates/{{ item.name }}.env.j2"
+  register: _docker_services_dc_env_stat
+- name: Deploy env file
+  template:
+    src: '{{ item.name }}.env.j2'
+    dest: '{{ docker_services_docker_path }}/{{ item.name }}/.env'
+    group: '{{ docker_services_docker_group }}'
+    mode: '0660'
+  when: _docker_services_dc_env_stat.stat.exists
+
+- name: Docker pull
+  community.docker.docker_compose_v2:
+    project_src: '{{ docker_services_docker_path }}/{{ item.name }}'
+
+- name: Please run
+  debug:
+    msg: Please run `docker compose -f {{ docker_services_docker_path }}/{{ item.name }}/docker-compose.yml up -d`
