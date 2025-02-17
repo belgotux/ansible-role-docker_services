@@ -50,6 +50,24 @@
     mode: '0660'
   when: _docker_services_dc_env_stat.stat.exists
 
+- name: Check if config folder exist in files/{{ item.name }}
+  delegate_to: localhost
+  stat:
+    path: "{{ role_path }}/files/{{ item.name }}"
+  register: _docker_services_conf_folder_stat
+
+- name: Copy config folder/files if available
+  copy:
+    src: '{{ file }}'
+    dest: '{{ docker_services_docker_path }}/{{ item.name }}/{{ file|basename }}'
+    group: '{{ docker_services_docker_group }}'
+    mode: '0664'
+  loop: "{{lookup('fileglob','{{ item.name }}/*',wantlist=True)}}"
+  loop_control:
+    loop_var: file
+    label: '{{ file|basename }}'
+  when: _docker_services_conf_folder_stat.stat.exists
+
 - name: Docker pull
   community.docker.docker_compose_v2:
     project_src: '{{ docker_services_docker_path }}/{{ item.name }}'

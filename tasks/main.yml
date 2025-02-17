@@ -2,3 +2,5 @@
 - name: Check list
   include_tasks: deploy_docker_compose.yml
   loop: '{{ docker_services_list }}'
+  loop_control:
+    label: '{{ item.name }}'

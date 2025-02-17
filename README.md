@@ -75,6 +75,48 @@ docker_services_list:
           external: true
 ```
 
+### Example with config files in the "files" folder
+Create a folder with the **name** of your docker compose into `files` like this : 
+```
+roles/docker_services
+├── README.md
+├── defaults
+│   └── main.yml
+├── files
+│   └── nginx_prout
+│       └── nginx.conf
+├── handlers
+│   └── main.yml
+├── meta
+│   └── main.yml
+├── tasks
+│   ├── deploy_docker_compose.yml
+│   └── main.yml
+├── templates
+│   └── docker-compose.yml.j2
+```
+No need modification is the service, folder presence is automatically check!
+
+```
+  - name: 'nginx_prout'
+    service: 'nginx'
+    image: 'nginx:1.27'
+    mem_limit: '300m'
+    networks: ["proxy-net"]
+    volumes: ["/files:/usr/share/nginx/html:ro", "$PWD/nginx.conf:/etc/nginx/conf.d/default.conf:ro"]
+    environments: ["TZ=Europe/Brussels"]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.nginx.entrypoints=websecure
+      - traefik.http.routers.nginx.tls.certresolver=le
+      - "traefik.http.routers.nginx.rule=Host(`nginx.yourdomain.tld`)"
+      - traefik.http.routers.nginx.middlewares=secure-headers@file
+    extra: |
+      networks:
+        proxy-net:
+          external: true
+```
+
 License
 -------
 
