@@ -12,7 +12,7 @@ services:
 {% if item.volumes is defined %}
     volumes:
 {% for volume in item.volumes %}
-{% set volume_absolute = volume | replace('$PWD', docker_services_docker_path ~ '/' ~ item.name) %}
+{% set volume_absolute = volume | replace('$PWD', docker_services_docker_conf ~ '/' ~ item.name) %}
       - {{ volume_absolute }}
 {% endfor %}
 {% endif %}

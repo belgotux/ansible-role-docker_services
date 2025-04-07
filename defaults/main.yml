@@ -1,12 +1,6 @@
 ---
 # defaults file for docker_services
-docker_services_docker_path: /etc/docker
+docker_services_docker_conf: /etc/docker
 docker_services_docker_user: "{{ remote_user }}"
 docker_services_docker_group: "docker"
-docker_services_list:
-  - name: 'whoami'
-    service: 'whoami'
-    image: 'containous/whoami'
-    mem_limit: '6m'
-    environments: ["TZ=Europe/Paris"]
-    ports: ["8080:80"]
+docker_services_list: []

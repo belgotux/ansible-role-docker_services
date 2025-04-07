@@ -1,6 +1,6 @@
 - name: Create directory for {{ item.name }}
   file:
-    dest: '{{ docker_services_docker_path }}/{{ item.name }}'
+    dest: '{{ docker_services_docker_conf }}/{{ item.name }}'
     mode: '0775'
     state: directory
 
@@ -12,14 +12,14 @@
 - name: Deploy specific docker compose {{ item.name }}
   template:
     src: '{{ item.name }}.yml.j2'
-    dest: '{{ docker_services_docker_path }}/{{ item.name }}/docker-compose.yml'
+    dest: '{{ docker_services_docker_conf }}/{{ item.name }}/docker-compose.yml'
     group: '{{ docker_services_docker_group }}'
     mode: '0664'
   when: _docker_services_dc_stat.stat.exists
 - name: Deploy docker compose basic
   template:
     src: 'docker-compose.yml.j2'
-    dest: '{{ docker_services_docker_path }}/{{ item.name }}/docker-compose.yml'
+    dest: '{{ docker_services_docker_conf }}/{{ item.name }}/docker-compose.yml'
     group: '{{ docker_services_docker_group }}'
     mode: '0664'
   when: not _docker_services_dc_stat.stat.exists
@@ -32,7 +32,7 @@
 - name: Deploy override if exist
   template:
     src: '{{ item.name }}.override.yml.j2'
-    dest: '{{ docker_services_docker_path }}/{{ item.name }}/docker-compose.override.yml'
+    dest: '{{ docker_services_docker_conf }}/{{ item.name }}/docker-compose.override.yml'
     group: '{{ docker_services_docker_group }}'
     mode: '0664'
   when: _docker_services_dc_override_stat.stat.exists
@@ -45,7 +45,7 @@
 - name: Deploy env file
   template:
     src: '{{ item.name }}.env.j2'
-    dest: '{{ docker_services_docker_path }}/{{ item.name }}/.env'
+    dest: '{{ docker_services_docker_conf }}/{{ item.name }}/.env'
     group: '{{ docker_services_docker_group }}'
     mode: '0660'
   when: _docker_services_dc_env_stat.stat.exists
@@ -59,19 +59,16 @@
 - name: Copy config folder/files if available
   copy:
     src: '{{ file }}'
-    dest: '{{ docker_services_docker_path }}/{{ item.name }}/{{ file|basename }}'
+    dest: '{{ docker_services_docker_conf }}/{{ item.name }}/{{ file | basename }}'
     group: '{{ docker_services_docker_group }}'
     mode: '0664'
-  loop: "{{lookup('fileglob','{{ item.name }}/*',wantlist=True)}}"
+  loop: "{{ lookup('fileglob', '{{ item.name }}/*', wantlist=True) }}"
   loop_control:
     loop_var: file
-    label: '{{ file|basename }}'
+    label: '{{ file | basename }}'
   when: _docker_services_conf_folder_stat.stat.exists
 
-- name: Docker pull
+- name: Launch {{ item.name }}
   community.docker.docker_compose_v2:
-    project_src: '{{ docker_services_docker_path }}/{{ item.name }}'
-
-- name: Please run
-  debug:
-    msg: Please run `docker compose -f {{ docker_services_docker_path }}/{{ item.name }}/docker-compose.yml up -d`
+    project_src: '{{ docker_services_docker_conf }}/{{ item.name }}'
+    state: present

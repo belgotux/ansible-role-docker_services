@@ -17,7 +17,7 @@ The role can work as it with the [default configuration](defaults/main.yml).
 ## Docker configuration
 
 ### Mandatory
-- `docker_services_docker_path` docker conf repository (default `/etc/docker`)
+- `docker_services_docker_conf` docker conf repository (default `/etc/docker`)
 - `docker_services_list` list of services, see the example below (default deploy a whoami)
 
 ### Optionnal
@@ -29,7 +29,7 @@ Dependencies
 Installed by the role :
 - pip3
 - pip lib for docker
-  - `docker`
+- `docker`
 
 Example Playbook
 ----------------
@@ -97,6 +97,7 @@ roles/docker_services
 ```
 No need modification is the service, folder presence is automatically check!
 
+### Example with variables only
 ```
   - name: 'nginx_prout'
     service: 'nginx'
@@ -115,6 +116,27 @@ No need modification is the service, folder presence is automatically check!
       networks:
         proxy-net:
           external: true
+```
+
+### Example with files only
+```
+Here, we using yaml files to configure the services, with environment file or override file
+roles/docker_services
+├── README.md
+├── defaults
+│   └── main.yml
+├── files
+│   └── mysrv
+│       └── nginx.conf
+├── handlers
+│   └── main.yml
+├── tasks
+│   ├── deploy_docker_compose.yml
+│   └── main.yml
+├── templates
+│   ├── mysrv.yml.j2
+│   ├── mysrv.env.j2
+│   └── mysrv.override.yml.j2
 ```
 
 License
