@@ -60,8 +60,6 @@ docker_services_list:
     image: 'containous/whoami'
     mem_limit: '6m'
     networks: ["proxy-net"]
-    volumes: ["$PWD/config:/config", "$PWD/modules:/lib/modules"]
-    caps: ["NET_ADMIN", "SYS_MODULE"]
     environments: ["TZ=Europe/Paris"]
     labels:
       - traefik.enable=true
