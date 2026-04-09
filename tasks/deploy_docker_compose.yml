@@ -72,3 +72,4 @@
   community.docker.docker_compose_v2:
     project_src: '{{ docker_services_docker_conf }}/{{ item.name }}'
     state: present
+  when: not ansible_check_mode
