@@ -7,11 +7,11 @@
 - name: Check if specific docker-compose file exist
   delegate_to: localhost
   stat:
-    path: "{{ role_path }}/templates/{{ item.name }}.yml.j2"
+    path: '{{ role_path }}/templates/{{ item.template | default(item.name) }}.yml.j2'
   register: _docker_services_dc_stat
 - name: Deploy specific docker compose {{ item.name }}
   template:
-    src: '{{ item.name }}.yml.j2'
+    src: '{{ item.template | default(item.name) }}.yml.j2'
     dest: '{{ docker_services_docker_conf }}/{{ item.name }}/docker-compose.yml'
     group: '{{ docker_services_docker_group }}'
     mode: '0664'
@@ -27,7 +27,7 @@
 - name: Check if override file exist
   delegate_to: localhost
   stat:
-    path: "{{ role_path }}/templates/{{ item.name }}.override.yml.j2"
+    path: '{{ role_path }}/templates/{{ item.name }}.override.yml.j2'
   register: _docker_services_dc_override_stat
 - name: Deploy override if exist
   template:
@@ -40,7 +40,7 @@
 - name: Check if env file exist for this name {{ item.name }}
   delegate_to: localhost
   stat:
-    path: "{{ role_path }}/templates/{{ item.name }}.env.j2"
+    path: '{{ role_path }}/templates/{{ item.name }}.env.j2'
   register: _docker_services_dc_env_stat
 - name: Deploy env file
   template:
@@ -53,7 +53,7 @@
 - name: Check if config folder exist in files/{{ item.name }}
   delegate_to: localhost
   stat:
-    path: "{{ role_path }}/files/{{ item.name }}"
+    path: '{{ role_path }}/files/{{ item.name }}'
   register: _docker_services_conf_folder_stat
 
 - name: Copy config folder/files if available
@@ -61,7 +61,7 @@
     src: '{{ file }}'
     dest: '{{ docker_services_docker_conf }}/{{ item.name }}/{{ file | basename }}'
     group: '{{ docker_services_docker_group }}'
-    mode: '0664'
+    mode: "{{ file | basename is search('\\.sh$') | ternary('0775', '0664') }}"
   loop: "{{ lookup('fileglob', '{{ item.name }}/*', wantlist=True) }}"
   loop_control:
     loop_var: file
@@ -73,3 +73,11 @@
     project_src: '{{ docker_services_docker_conf }}/{{ item.name }}'
     state: present
   when: not ansible_check_mode
+
+- name: Add traefik to the {{ item.name }} network
+  community.docker.docker_network:
+    name: '{{ item.name }}_{{ item.networks[0] }}'
+    connected:
+      - '{{ docker_services_traefik_service_name }}'
+    appends: true
+  when: (item.traefik_shared_network | default(false))
