@@ -1,33 +1,32 @@
 Docker-services
 ===============
 
-Role to deploy docker-compose, with override and .env files.
-Template for most of docker-compose file but you can add your specific template too.
+This role deploys Docker Compose services, with override and `.env` files. It provides a generic Compose template and supports **your** specific templates.
 
 Requirements
 ------------
 
 - Docker installed (with [my role](https://galaxy.ansible.com/belgotux/docker) if needed [github](https://github.com/belgotux/ansible-role-docker))
-- Ansible collection community.docker ([documentation](https://docs.ansible.com/ansible/latest/collections/community/docker/docker_compose_module.html)) : `ansible-galaxy collection install community.docker`
+- The `community.docker` Ansible collection. Install it with `ansible-galaxy collection install community.docker`, see the [module documentation](https://docs.ansible.com/ansible/latest/collections/community/docker/docker_compose_module.html)
 
 Dependencies
 ------------
-Installed by the role :
+The role installs the following dependencies:
 - pip3
 - pip lib for docker
-- `docker`
+- docker
 
 Example Playbook
 ----------------
 
 ## Simple playbook example
-```
-- hosts: '{{ myhost | default('all') }}'
+```yml
+- hosts: "{{ myhost | default('all') }}"
   remote_user: root
 
   roles:
     - role: belgotux.docker_services
-  variables:
+  vars:
     docker_services_list:
       - name: 'whoami'
         service: 'whoami'
@@ -37,9 +36,9 @@ Example Playbook
         ports: ["8080:80"]
 ```
 
-## Variable with traefik
-You can find my Traefik role on [ansible galaxy](https://galaxy.ansible.com/belgotux/docker_traefik) or [github](https://github.com/belgotux/ansible-role-docker_traefik)
-```
+## Example with Traefik
+You can find my Traefik role on [Ansible Galaxy](https://galaxy.ansible.com/belgotux/docker_traefik) or [GitHub](https://github.com/belgotux/ansible-role-docker_traefik).
+```yml
 docker_services_list:
   - name: 'whoami'
     service: 'whoami'
@@ -76,8 +75,8 @@ docker_services_list:
           external: true
 ```
 
-## Using config files in the "templates" folder
-Create a folder with the **name** of your docker compose into `files` like this : 
+## Using configuration files in the "templates" folder
+Create a folder with the **name** of your docker compose into `files`:
 ```
 roles/docker_services
 ├── README.md
@@ -96,11 +95,11 @@ roles/docker_services
 ├── templates
 │   └── docker-compose.yml.j2
 ```
-No need modification is the service, folder presence is automatically check!
+No service-specific configuration is required. The role automatically checks for a matching directory under `files` and copies its contents.
 
-### Structure of files
+### Files structure
+This example uses yaml files to configure the services, with environment file or override file
 ```
-Here, we using yaml files to configure the services, with environment file or override file
 roles/docker_services
 ├── README.md
 ├── defaults
@@ -119,19 +118,19 @@ roles/docker_services
 │   └── mysrv.override.yml.j2
 ```
 
-Just add name in the list : 
-```
+Add the service name to the list:
+```yml
 docker_services_list:
   - name: 'mysrv'
 ```
 
 ### Using one template and multiple instances
-You can use the key "template" to have one compose file and multiple env files for mulmtiple instance of the same application.
+You can deploy multiple instances of the same application, each with its own Compose and environment files. The template filenames must match each instance's `name`.
 
-Here an exemple with odoo.
+Here is an Odoo example.
 
 #### The docker_services_list
-```
+```yml
 docker_services_list:
   - name: 'my_instance_1'
     service: 'odoo'
@@ -140,9 +139,9 @@ docker_services_list:
     db_password: '{{ ansible_vault.db_password }}'
 ```
 
-#### The docker compose yaml file
+#### The Docker Compose YAML file
 Typical service with an app and a database `template/odoo.yml.j2` :
-```
+```yml
 networks:
   backend:
   proxy-net:
@@ -226,13 +225,12 @@ POSTGRES_PASSWORD={{ item.db_password }}
 POSTGRES_DB={{ item.name }}
 ```
 
-#### Another example with **your** custom vars
-When using traefik, you need specific routers name and rule for example.
-You can use your own vars to do that!
+#### Another example with custom variables
+When using Traefik, you may need to configure a router name and rule. You can use custom variables for these values.
 
-Here label example for 2 instances of matomo :
+The following example configures labels for 2 matomo instances:
 
-1. in the service list :
+1. In the service list:
 ```yml
 docker_services_list:
   - name: 'matomo-instance1'
