@@ -42,13 +42,27 @@
   stat:
     path: '{{ role_path }}/templates/{{ item.name }}.env.j2'
   register: _docker_services_dc_env_stat
-- name: Deploy env file
+- name: Deploy {{ item.name }} env file
   template:
-    src: '{{ item.name }}.env.j2'
-    dest: '{{ docker_services_docker_conf }}/{{ item.name }}/.env'
-    group: '{{ docker_services_docker_group }}'
-    mode: '0660'
+    src: "{{ item.name }}.env.j2"
+    dest: "{{ docker_services_docker_conf }}/{{ item.name }}/.env"
+    group: "{{ docker_services_docker_group }}"
+    mode: "0660"
   when: _docker_services_dc_env_stat.stat.exists
+
+- name: Check if env file exist for the template {{ item.template | default('') }}
+  delegate_to: localhost
+  stat:
+    path: "{{ role_path }}/templates/{{ item.template }}.env.j2"
+  register: _docker_services_dc_template_env_stat
+  when: item.template is defined and not _docker_services_dc_env_stat.stat.exists
+- name: Deploy template {{ item.template | default('') }} env file
+  template:
+    src: "{{ item.template }}.env.j2"
+    dest: "{{ docker_services_docker_conf }}/{{ item.name }}/.env"
+    group: "{{ docker_services_docker_group }}"
+    mode: "0660"
+  when: item.template is defined and _docker_services_dc_template_env_stat.stat.exists and not not _docker_services_dc_env_stat.stat.exists
 
 - name: Check if config folder exist in files/{{ item.name }}
   delegate_to: localhost
