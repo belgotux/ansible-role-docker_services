@@ -1,3 +1,4 @@
 templates/*
 !templates/docker-compose.yml.j2
+!templates/glpi.*
 files/*

@@ -1,0 +1,119 @@
+networks:
+  proxy-net:
+    external: true
+  backend:
+
+volumes:
+  db:
+  app:
+  src:
+
+services:
+  mariadb:
+    image: mariadb:${MARIADB_VERSION}
+    restart: "unless-stopped"
+    hostname: mariadb
+    networks:
+      - backend
+    environment:
+      - TZ=Europe/Paris
+    env_file:
+      - .env
+    volumes:
+      - db:/var/lib/mysql
+    labels:
+      - traefik.enable=false
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh --connect --innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  app:
+    image: "glpi/glpi:${GLPI_VERSION}"
+    restart: "unless-stopped"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    hostname: {{ item.name | default ('glpi') }}
+    environment:
+      - TZ=Europe/Paris
+      - GLPI_ENVIRONMENT_TYPE=production
+      - GLPI_DB_HOST=mariadb
+      - GLPI_DB_PORT=3306
+      - GLPI_DB_NAME=${MARIADB_DATABASE}
+      - GLPI_DB_USER=${MARIADB_USER}
+      - GLPI_DB_PASSWORD=${MARIADB_PASSWORD}
+      - GLPI_TRUSTED_PROXIES=${GLPI_TRUSTED_PROXIES}
+    networks:
+      - backend
+      - proxy-net
+    volumes:
+      - app:/var/glpi
+      - src:/var/www/glpi
+    configs:
+      - source: apache_proxy
+        target: /etc/apache2/conf-enabled/proxy-https.conf
+    labels:
+      - traefik.enable=true
+      - "traefik.http.routers.{{ item.name | default ('glpi') }}.rule=Host(`{{ item.routers_host }}`)"
+      - traefik.http.routers.{{ item.name | default ('glpi') }}.tls=true
+      - traefik.http.routers.{{ item.name | default ('glpi') }}.entrypoints=websecure
+    healthcheck:
+      test: ["CMD-SHELL", "php /var/www/glpi/bin/console system:status >/dev/null 2>&1 || exit 1"]
+      interval: 60s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  init:
+    image: glpi/glpi:${GLPI_VERSION}
+    restart: "no"
+    depends_on:
+      app:
+        condition: service_healthy
+    volumes:
+      - app:/var/glpi
+      - src:/var/www/glpi
+    networks:
+      - backend
+    environment:
+      TZ: 'Europe/Paris'
+{% if item.glpi_market_key is defined %}
+      GLPI_MARKET_KEY: ${GLPI_MARKET_KEY}
+{% endif %}
+{% if item.glpi_plugins | default([]) | length > 0 %}
+      GLPI_PLUGINS: '{{ item.glpi_plugins | join(" ") }}'
+{% endif %}
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        CONSOLE="php /var/www/glpi/bin/console"
+
+        until $$CONSOLE plugin:list >/dev/null 2>&1; do
+          echo "Wait console..."; sleep 10
+        done
+
+        $$CONSOLE config:set --context=core url_base 'https://{{ item.routers_host }}'
+        $$CONSOLE config:set --context=core url_base_api 'https://{{ item.routers_host }}/api.php'
+        $$CONSOLE config:set --context=core language '{{ item.glpi_lang | default('en_US') }}'
+        $$CONSOLE config:set --context=core timezone '$$TZ'
+{% if item.glpi_market_key is defined %}
+        $$CONSOLE config:set --context=core glpinetwork_registration_key "$$GLPI_MARKET_KEY"
+{% endif %}
+{% if item.glpi_plugins | default([]) | length > 0 %}
+        for plugin in $$GLPI_PLUGINS; do
+          echo "=== Plugin: $$plugin ==="
+          if [ ! -d "/var/glpi/marketplace/$$plugin" ]; then
+            $$CONSOLE marketplace:download --no-interaction "$$plugin"
+          fi
+          $$CONSOLE plugin:install --no-interaction "$$plugin"
+          $$CONSOLE plugin:activate --no-interaction "$$plugin"
+        done
+{% endif %}
+        exit 0
+
+configs:
+  apache_proxy:
+    content: |
+      SetEnvIf X-Forwarded-Proto "https" HTTPS=on

@@ -1,3 +1,4 @@
+---
 - name: Create directory for {{ item.name }}
   file:
     dest: '{{ docker_services_docker_conf }}/{{ item.name }}'

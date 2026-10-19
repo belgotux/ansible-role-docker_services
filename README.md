@@ -225,7 +225,7 @@ POSTGRES_PASSWORD={{ item.db_password }}
 POSTGRES_DB={{ item.name }}
 ```
 
-#### Another example with custom variables
+### Another example with custom variables
 When using Traefik, you may need to configure a router name and rule. You can use custom variables for these values.
 
 The following example configures labels for 2 matomo instances:
@@ -250,6 +250,9 @@ labels:
   - traefik.http.routers.{{ item.name | default ('matomo') }}.rule={{ item.routers_rule }}
   - traefik.http.routers.{{ item.name | default ('matomo') }}.middlewares=secure-headers@file
 ```
+
+### Link to my templates for somes applications
+- [GLPI](./templates/glpi.md)
 
 Role Variables
 --------------
