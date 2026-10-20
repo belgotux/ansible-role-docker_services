@@ -3,7 +3,8 @@ This template has a structured Compose and .env file, variables will automatical
 
 Here is an example of GLPI instance; make sure to use your vault for your passwords : 
 ```yml
-- name: 'myglpi'
+docker_services_list:
+  - name: 'myglpi'
     service: 'myglpi'
     template: 'glpi'
     routers_host: 'myglpi'

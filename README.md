@@ -9,13 +9,6 @@ Requirements
 - Docker installed (with [my role](https://galaxy.ansible.com/belgotux/docker) if needed [github](https://github.com/belgotux/ansible-role-docker))
 - The `community.docker` Ansible collection. Install it with `ansible-galaxy collection install community.docker`, see the [module documentation](https://docs.ansible.com/ansible/latest/collections/community/docker/docker_compose_module.html)
 
-Dependencies
-------------
-The role installs the following dependencies:
-- pip3
-- pip lib for docker
-- docker
-
 Example Playbook
 ----------------
 
