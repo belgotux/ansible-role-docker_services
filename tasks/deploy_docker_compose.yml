@@ -63,7 +63,7 @@
     dest: "{{ docker_services_docker_conf }}/{{ item.name }}/.env"
     group: "{{ docker_services_docker_group }}"
     mode: "0660"
-  when: item.template is defined and _docker_services_dc_template_env_stat.stat.exists and not not _docker_services_dc_env_stat.stat.exists
+  when: item.template is defined and _docker_services_dc_template_env_stat.stat.exists and not _docker_services_dc_env_stat.stat.exists
 
 - name: Check if config folder exist in files/{{ item.name }}
   delegate_to: localhost

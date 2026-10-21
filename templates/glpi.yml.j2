@@ -54,6 +54,8 @@ services:
     configs:
       - source: apache_proxy
         target: /etc/apache2/conf-enabled/proxy-https.conf
+      - source: php_session
+        target: /usr/local/etc/php/conf.d/zz-session.ini
     labels:
       - traefik.enable=true
       - "traefik.http.routers.{{ item.name | default ('glpi') }}.rule=Host(`{{ item.routers_host }}`)"
@@ -117,3 +119,8 @@ configs:
   apache_proxy:
     content: |
       SetEnvIf X-Forwarded-Proto "https" HTTPS=on
+  php_session:
+    content: |
+      session.cookie_secure = On
+      session.cookie_httponly = On
+      session.cookie_samesite = Lax
