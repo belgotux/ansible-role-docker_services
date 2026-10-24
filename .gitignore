@@ -1,4 +1,5 @@
 templates/*
 !templates/docker-compose.yml.j2
 !templates/glpi.*
+!templates/odoo.*
 files/*

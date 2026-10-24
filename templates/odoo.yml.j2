@@ -1,0 +1,115 @@
+networks:
+  backend:
+  proxy-net:
+    external: true
+
+volumes:
+  data:
+  custom-addons:
+  db-data:
+
+services:
+  odoo:
+    image: odoo:${ODOO_VERSION}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${ODOO_PORT}:8069"
+      - "${ODOO_GEVENT_PORT}:8072"
+    volumes:
+      - data:/var/lib/odoo
+      - custom-addons:/mnt/extra-addons
+    environment:
+      - HOST=${ODOO_DB_HOST}
+      - USER=${POSTGRES_USER}
+      - PASSWORD=${POSTGRES_PASSWORD}
+      - DBNAME=${POSTGRES_DB}
+    command:
+      - odoo
+      - --proxy-mode
+      - --no-database-list
+      - --workers={{item.odoo_workers | default ('4')}}
+      - --db_maxconn={{item.odoo_db_maxconn | default ('48')}}
+      - --max-cron-threads={{ item.odoo_cron_threads | default ('2') }}
+      - --http-interface=0.0.0.0
+      - --limit-time-cpu={{ item.odoo_limit_time_cpu | default ('600') }}
+      - --limit-time-real={{ item.odoo_limit_time_real | default ('1200') }}
+      - --log-level={{ item.odoo_log_level | default("warn") }}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8069/web/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: {{ item.odoo_limits_memory | default ('3G') }}
+          cpus: {{ item.odoo_limits_cpus | default ('2.0') }}
+        reservations:
+          memory: 512M
+          cpus: "0.5"
+    networks:
+      - backend
+      - proxy-net
+    labels:
+      - "traefik.enable=true"
+      # --- Router Odoo (Web / API) ---
+      - "traefik.http.routers.{{ item.name | default ('odoo') }}.rule=Host(`{{ item.routers_host }}`)"
+      - "traefik.http.routers.{{ item.name | default ('odoo') }}.entrypoints=websecure"
+      - "traefik.http.routers.{{ item.name | default ('odoo') }}.tls=true"
+      - "traefik.http.routers.{{ item.name | default ('odoo') }}.service={{ item.name | default ('odoo') }}"
+      - "traefik.http.services.{{ item.name | default ('odoo') }}.loadbalancer.server.port=8069"
+      # --- Router Longpolling / Websocket (Chat / realtime notifications) ---
+      # workers in odoo.conf (workers > 0)
+      - "traefik.http.routers.{{ item.name | default ('odoo') }}-chat.rule=Host(`{{ item.routers_host }}`) && (PathPrefix(`/websocket`) || PathPrefix(`/longpolling`))"
+      - "traefik.http.routers.{{ item.name | default ('odoo') }}-chat.entrypoints=websecure"
+      - "traefik.http.routers.{{ item.name | default ('odoo') }}-chat.tls=true"
+      - "traefik.http.routers.{{ item.name | default ('odoo') }}-chat.service={{ item.name | default ('odoo') }}-chat"
+      - "traefik.http.services.{{ item.name | default ('odoo') }}-chat.loadbalancer.server.port=8072"
+
+  db:
+    image: postgres:${POSTGRES_VERSION}
+    env_file:
+      - .env
+    environment:
+      #- POSTGRES_USER=${POSTGRES_USER}
+      #- POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      #- POSTGRES_DB=${POSTGRES_DB}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - db-data:/var/lib/postgresql/data/pgdata
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: {{ item.db_limits_memory | default ('2G') }}
+          cpus: {{ item.db_limits_cpus | default ('2.0') }}
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+    networks:
+      - backend
+    labels:
+      - "traefik.enable=false"
+    # PostgreSQL tuning for Odoo
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=768MB"
+      - "-c"
+      - "work_mem=16MB"
+      - "-c"
+      - "maintenance_work_mem=128MB"
+      - "-c"
+      - "max_connections={{ (item.workers | default(4) | int) * (item.db_maxconn | default(48) | int) + 1 }}" # num workers x db_maxconn
