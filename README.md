@@ -206,10 +206,6 @@ ODOO_DB_HOST=db
 ODOO_DB_USER=odoo
 ODOO_DB_PASSWORD={{ item.db_password }}
 ODOO_DB_NAME={{ item.name }}
-ODOO_WORKERS=4
-ODOO_MAX_CRON_THREADS=2
-ODOO_LIST_DB=False
-ODOO_PROXY_MODE=True
 
 # PostgreSQL
 POSTGRES_VERSION=17-alpine
@@ -246,6 +242,7 @@ labels:
 
 ### Link to my templates for somes applications
 - [GLPI](./templates/glpi.md)
+- [ODOO](./templates/odoo.md)
 
 Role Variables
 --------------
