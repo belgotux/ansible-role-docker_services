@@ -1,0 +1,73 @@
+networks:
+  backend:
+  proxy-net:
+    external: true
+volumes:
+  dbdata:
+  src:
+  config:
+
+services:
+  db:
+    image: mariadb:${MARIADB_VERSION}
+    deploy:
+      resources:
+        limits:
+          memory: {{ item.mariadb_limits_memory | default ('1G') }}
+          cpus: {{ item.mariadb_limits_cpus | default ('2.0') }}
+    command: --max-allowed-packet={{ item.mariadb_max_allowed_packet | default ('64MB') }}
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./init_sql:/docker-entrypoint-initdb.d/
+    networks:
+      - backend
+    environment:
+      TZ: 'Europe/Paris'
+    env_file:
+      - .env
+    restart: unless-stopped
+    labels:
+      - traefik.enable=false
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh --connect --innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  {{ item.service | default ('app') }}:
+    image: matomo:${MATOMO_VERSION}
+    deploy:
+      resources:
+        limits:
+          memory: {{ item.matomo_limits_memory | default ('1G') }}
+          cpus: {{ item.matomo_limits_cpus | default ('2.0') }}
+    restart: unless-stopped
+    volumes:
+      - src:/var/www/html
+      - config:/var/www/html/config
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+      - proxy-net
+    environment:
+      TZ: 'Europe/Paris'
+      MATOMO_DATABASE_USERNAME: ${MARIADB_USER}
+      MATOMO_DATABASE_PASSWORD: ${MARIADB_PASSWORD}
+      MATOMO_DATABASE_DBNAME: ${MARIADB_DATABASE}
+      MATOMO_DATABASE_HOST: db
+      MATOMO_DATABASE_ADAPTER: mysql
+      MATOMO_DATABASE_TABLES_PREFIX: matomo_
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.{{ item.name | default ('matomo') }}.entrypoints=websecure
+      - traefik.http.routers.{{ item.name | default ('matomo') }}.tls=true
+      - "traefik.http.routers.{{ item.name | default ('matomo') }}.rule=Host(`{{ item.routers_host }}`)"
+      - traefik.http.routers.{{ item.name | default ('matomo') }}.middlewares=secure-headers@file
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost/matomo.php || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
